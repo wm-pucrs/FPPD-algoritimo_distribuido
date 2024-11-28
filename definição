@@ -64,8 +64,6 @@ a aplicação escreva "dmxReq[EXIT]"  no canal de requisição para DIMEX em p)
 * Assumimos que todo processo sinaliza Exit ao final do seu uso, e que seu uso termina.  
    De outra forma, este algoritmo não garante progresso.
 
-Slides Slides
-Modulos Base para Sistemas Distribuidos Modulos Base para Sistemas Distribuidos
 Abra o .ZIP.
 Ele vai criar o seguinte
        pasta SD/
