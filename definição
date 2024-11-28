@@ -1,0 +1,93 @@
+Trabalho SD
+  Encontre na pasta de programas abaixo os fontes do template para o exercício de Sistemas Distribuídos.
+  Conforme visto em aula:
+        DIMEX é um template para implementar o algoritmo de Exclusão Mútua Distribuída
+        useDIMEX.go e useDIMEX-f.go são aplicações que representam os processos distribuído.
+  Voce deve iniciar, em diferentes Shell (terminais) na sua máquina, os processos useDimex.go. (ou -f)
+  Voce pode rodar em diferentes maquinas bastando acertar os enderecos IP utilizados.
+  Leia nos comentários iniciais do arquivo como fazer isto.
+
+  O useDIMEX.go implementa processos que ficam em loop eterno 
+        pedindo ao DIMEX a exclusao mutua,  (ENTRY)
+        aguarda ate o DIMEX permitir,       (aguarda indicação do DIMEX)
+        usa o recurso (cédigo vazio)  
+        informa ao DIMEX que liberou        (EXIT)
+
+  O useDIMEX-f.go implementa processos que ficam em loop eterno 
+        pedindo ao DIMEX a exclusao mutua,  (ENTRY)
+        aguarda ate o DIMEX permitir,       (aguarda indicação do DIMEX)
+               abre um mesmo arquivo , 
+               esceve nele,  
+               fecha
+        informa ao DIMEX que liberou        (EXIT)
+** Em grupos de até 4, vocês devem:
+    A) implementar o núcleo do algoritmo DIMEX para respeitar as propriedades
+        da exclusão mútua vistas em aula, que estão nos slides;
+        fazer rodar.  testar.
+    B) entregar o codigo e um relatorio sucinto em pdf na sala moodle
+       o relatório deve conter a argumentação de porque o sistema funciona.
+       ou seja, usando as propriedades de P2PPLink e dado o algoritmo DIMEX,
+       por que as propriedades (veja nos slides) do DiMEX são mantidas.
+    C) ATENÇÃO:
+       apresentar o trabalho no dia marcado em laboratório.
+       todos devem estar presentes.   
+       haverá um sorteio para escolher quem apresenta o sistema.
+       se o sorteado não estiver presente, não receberá nota - 
+       exceto justificativa abonada perante a secretaria.
+    D) ATENÇÃO:
+       na data marcada todos devem ter seus trabalhos PRONTOS NO INÍCIO DA AULA
+       roteiro de apresentacao:
+          1) mostrar sistema rodando com o useDIMEX-f.go e mostrar o conteudo do arquivo gerado.
+          2) o sorteado deverá responder às perguntas do professor
+          3) o professor poderá perguntar a demais membros, tanto usando sorteio como escolhendo o estudante.
+    Siga as instrucoes de entrega para nao perder nota:    
+        Monte uma pasta com nome = a concatenacao dos seus nomes (membros do grupo)
+        Coloque ali os fontes e estrutura de diretórios necessária (uma cópia).
+        Escreva em um PDF os argumentos do item B (propriedades garantidas)- coloque nomes,
+        e coloque este PDF nesta pasta.
+        Faça um .ZIP da pasta e então upload do .ZIP na sala de entrega -  por UM dos componentes.    
+Transcrevemos as Propriedades do DiMEX abaixo:
+
+DMX1: (não-postergação e não bloqueio) se um processo solicita Entry,   decorrido algum tempo, o acesso será permitido,
+ou seja ele entrega   resp*  
+
+(na implementação, significa que se em um processo distribuído, a aplicação escreve "dmxReq[Entry]" para o módulo DIMEX,
+então decorrido um tempo ele vai garantidamente escrever um "dmxResp" no canal de indicação do módulo DIMEX para a aplicação)
+
+DMX2: (mutex) Se um processo p entregou dmxResp, nenhum outro processo entregará   dmxResp antes que p sinalize Exit;
+
+(na implementação, significa que
+se em um processo p o módulo  DIMEX entregou "dmxResp" no canal de indicação para a aplicação, então
+em nenhum outro processo  q o módulo DIMEX de q  entregará "dmxResp" para sua aplicação antes que em p
+a aplicação escreva "dmxReq[EXIT]"  no canal de requisição para DIMEX em p) 
+
+* Assumimos que todo processo sinaliza Exit ao final do seu uso, e que seu uso termina.  
+   De outra forma, este algoritmo não garante progresso.
+
+Slides Slides
+Modulos Base para Sistemas Distribuidos Modulos Base para Sistemas Distribuidos
+Abra o .ZIP.
+Ele vai criar o seguinte
+       pasta SD/
+           pasta PP2PLink/
+                                 PP2PLink.go
+           pasta pasta DIMEX/
+                                 DIMEX-Template.go
+           chatComPPLink.go
+           useDIMEX.go
+           useDIMEX-f.go
+           go.mod
+
+O arquivo adicionado  useDIMEX-f.go
+gera o arquivo mxOUT.txt que faz append de:
+   |    quando entra no MX e
+   .    quando sai de MX.
+Todos processos acessam o mesmo arquivo.   Este sistema funciona na mesma máquina
+ou em máquinas que compartilham o sistema de arquivos (enxergam mesmos arquivos).
+Se voce deixar rodar por algum tempo, obterá um registro de milhares de entradas e saídas
+do MX.   No arquivo nunca poderá ser encontrada a sub-string "||" significando duas
+entradas consecutivas no MX sem uma saída entre elas.   Analogamente, a sub-string ".." 
+também não deve ser encontrada.   Ou seja, o arquivo é composto somente por sequencias
+de "|."
+Após a execução voce pode abrir o arquivo mxOUT.txt em um editor txt comum e procurar
+por  "||", devendo dar zero ocorrências.
