@@ -22,6 +22,7 @@ package DIMEX
 import (
 	PP2PLink "SD/PP2PLink"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -44,6 +45,13 @@ const (
 
 type dmxResp struct { // mensagem do módulo DIMEX infrmando que pode acessar - pode ser somente um sinal (vazio)
 	// mensagem para aplicacao indicando que pode prosseguir
+}
+
+func customMax(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 type DIMEX_Module struct {
@@ -133,25 +141,28 @@ func (module *DIMEX_Module) Start() {
 // ------------------------------------------------------------------------------------
 
 func (module *DIMEX_Module) handleUponReqEntry() {
-	/*
-		    quando aplicação aplicação solicita[ dmx, Entry ]  faça
-			    lcl ++
-		   		reqTs := lcl
-		   		nbrResps := 0
-		   		forall processes q != p
-		       		manda msg [ pl , Send | q, [ reqEntry, id, reqTs ]
-		   		st := wantMX
-	*/
+	module.lcl++
+	module.reqTs = module.lcl
+	module.nbrResps = 0
+
+	for i := 0; i < len(module.processes); i++ {
+		if i != module.id {
+			module.sendToLink(module.processes[i], fmt.Sprintf("reqEntry;%d;%d", module.id, module.lcl), module.processes[module.id])
+		}
+	}
+	module.st = wantMX
 }
 
 func (module *DIMEX_Module) handleUponReqExit() {
-	/*
-				quando aplicação avisa [ dmx, Exit   ]  faça
-			  		forall  q  em waiting
-		        		manda msg[ pl, Send | q , [ respOk ]  ]
-		   			waiting := {}
-					st := noMX
-	*/
+	for i, isWaiting := range module.waiting {
+		if isWaiting {
+			module.sendToLink(module.processes[i], fmt.Sprintf("respOK;%d;%d", module.id, module.lcl), module.processes[module.id])
+			fmt.Printf("Enviei OK para o processo %d\n", i)
+			module.waiting[i] = false
+		}
+	}
+
+	module.st = noMX
 }
 
 // ------------------------------------------------------------------------------------
@@ -161,27 +172,36 @@ func (module *DIMEX_Module) handleUponReqExit() {
 // ------------------------------------------------------------------------------------
 
 func (module *DIMEX_Module) handleUponDeliverRespOk(msgOutro PP2PLink.PP2PLink_Ind_Message) {
-	/*
-				quando pl entregar msg  [ pl, Deliver | q, [ respOk ] ]
-					nbrResps++
-		   		 	if nbrResps == #processes -1
-		    		then gera evento [ dmx, Deliver | resp ]
-		             	 st := inMX
-	*/
+	module.nbrResps++
+
+	if module.nbrResps == len(module.processes)-1 {
+		module.Ind <- dmxResp{}
+		module.st = inMX
+	}
 }
 
 func (module *DIMEX_Module) handleUponDeliverReqEntry(msgOutro PP2PLink.PP2PLink_Ind_Message) {
-	// outro processo quer entrar na SC
-	/*
-				quando pl entregar msg [ pl, Deliver | q, [ reqEntry, rid, rts ]
-				   if  (st == noMX)   OR
-		         	   (st == wantMX  AND  after([reqTs,id], [rts,rid]) )
-		    	   then  gera evento [ pl, Send | q , [ respOk ]  ]
-		   	 	   else waiting := waiting + [ q ]
-		        		// if   (st == inMX) OR  (st == wantMX AND [rts,rid]> [reqTs,id])
-		        		// then   waiting := waiting + [ q ]     else  // empty
-		     	   lcl := max(lcl, rts)
-	*/
+	payload := strings.Split(msgOutro.Message, ";")
+
+	senderId, err := strconv.Atoi(payload[1])
+	if err != nil {
+		fmt.Printf("Erro ao converter senderId: %v\n", err)
+		return
+	}
+	senderTs, err := strconv.Atoi(payload[2])
+	if err != nil {
+		fmt.Printf("Erro ao converter senderTs: %v\n", err)
+		return
+	}
+
+	if (module.st == noMX) || (module.st == wantMX && !before(module.id, module.reqTs, senderId, senderTs)) {
+		module.sendToLink(module.processes[senderId], fmt.Sprintf("respOK;%d;%d", module.id, module.reqTs), module.processes[module.id])
+		fmt.Printf("Enviei OK para o %d\n", senderId)
+	} else {
+		module.waiting[senderId] = true
+	}
+
+	module.lcl = customMax(module.lcl, senderTs)
 }
 
 // ------------------------------------------------------------------------------------
